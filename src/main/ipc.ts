@@ -22,7 +22,7 @@ export function registerIpcHandlers(
     const proc = getProcessMap().get(sessionId)
     if (!proc) return { success: false, error: 'Process not found' }
     const tty = proc.tty
-    getProcessMap().delete(sessionId)
+    proc.status = 'running'
     notifyRenderer()
     approvalHandler.reject(tty)
     return { success: true }
