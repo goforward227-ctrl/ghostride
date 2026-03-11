@@ -1,4 +1,4 @@
-import { Tray, Menu, nativeImage, app, BrowserWindow } from 'electron'
+import { Tray, Menu, nativeImage, nativeTheme, app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import { showWindowBelowTray, setQuitting } from './window'
@@ -7,28 +7,27 @@ let tray: Tray | null = null
 
 const res = (...parts: string[]): string => join(__dirname, '../../resources', ...parts)
 
-function loadTemplate(): Electron.NativeImage {
+function loadImage(name1x: string, name2x: string, template = false): Electron.NativeImage {
   const img = nativeImage.createEmpty()
-  img.addRepresentation({ scaleFactor: 1.0, buffer: readFileSync(res('trayIconTemplate.png')) })
-  img.addRepresentation({ scaleFactor: 2.0, buffer: readFileSync(res('trayIconTemplate@2x.png')) })
-  img.setTemplateImage(true)
-  return img
-}
-
-function loadBadge(): Electron.NativeImage {
-  const img = nativeImage.createEmpty()
-  img.addRepresentation({ scaleFactor: 1.0, buffer: readFileSync(res('trayIconBadge.png')) })
-  img.addRepresentation({ scaleFactor: 2.0, buffer: readFileSync(res('trayIconBadge@2x.png')) })
+  img.addRepresentation({ scaleFactor: 1.0, buffer: readFileSync(res(name1x)) })
+  img.addRepresentation({ scaleFactor: 2.0, buffer: readFileSync(res(name2x)) })
+  if (template) img.setTemplateImage(true)
   return img
 }
 
 let normalIcon: Electron.NativeImage
-let badgeIcon: Electron.NativeImage
+let badgeLightIcon: Electron.NativeImage
+let badgeDarkIcon: Electron.NativeImage
 let currentHasBadge = false
 
 function buildIcons(): void {
-  normalIcon = loadTemplate()
-  badgeIcon = loadBadge()
+  normalIcon = loadImage('trayIconTemplate.png', 'trayIconTemplate@2x.png', true)
+  badgeLightIcon = loadImage('trayIconBadgeLight.png', 'trayIconBadgeLight@2x.png')
+  badgeDarkIcon = loadImage('trayIconBadgeDark.png', 'trayIconBadgeDark@2x.png')
+}
+
+function getBadgeIcon(): Electron.NativeImage {
+  return nativeTheme.shouldUseDarkColors ? badgeDarkIcon : badgeLightIcon
 }
 
 export function createTray(
@@ -72,6 +71,13 @@ export function createTray(
     tray!.popUpContextMenu(contextMenu)
   })
 
+  // Update badge icon when system theme changes
+  nativeTheme.on('updated', () => {
+    if (tray && currentHasBadge) {
+      tray.setImage(getBadgeIcon())
+    }
+  })
+
   return tray
 }
 
@@ -80,7 +86,7 @@ export function updateTrayTitle(pendingCount: number): void {
   const shouldBadge = pendingCount > 0
   if (shouldBadge !== currentHasBadge) {
     currentHasBadge = shouldBadge
-    tray.setImage(shouldBadge ? badgeIcon : normalIcon)
+    tray.setImage(shouldBadge ? getBadgeIcon() : normalIcon)
   }
   tray.setTitle('')
 }
