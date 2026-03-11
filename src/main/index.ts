@@ -139,7 +139,7 @@ app.on('second-instance', () => {
 })
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.ccbuddy.app')
+  electronApp.setAppUserModelId('com.ghostride.app')
 
   // Hide from Dock - menu bar only app
   app.dock?.hide()
@@ -154,7 +154,7 @@ app.whenReady().then(() => {
   // Minimal app menu (for keyboard shortcut to work)
   const menu = Menu.buildFromTemplate([
     {
-      label: 'CCBuddy',
+      label: 'Ghostride',
       submenu: [
         {
           label: '一括承認',

@@ -18,7 +18,7 @@ export function createTray(
   }
 
   tray = new Tray(icon)
-  tray.setToolTip('CCBuddy')
+  tray.setToolTip('Ghostride')
 
   // Left-click: toggle popover panel below tray icon
   tray.on('click', (_event, bounds) => {

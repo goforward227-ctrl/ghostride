@@ -7,7 +7,7 @@ export interface ClaudeProcessDTO {
   lastTimestamp: number
 }
 
-export interface CCBuddyAPI {
+export interface GhostrideAPI {
   onProcessesUpdated: (callback: (processes: ClaudeProcessDTO[]) => void) => void
   approve: (id: string) => Promise<{ success: boolean; error?: string }>
   reject: (id: string) => Promise<{ success: boolean; error?: string }>
@@ -17,6 +17,6 @@ export interface CCBuddyAPI {
 
 declare global {
   interface Window {
-    api: CCBuddyAPI
+    api: GhostrideAPI
   }
 }

@@ -1,13 +1,10 @@
 {
-  "name": "ccbuddy",
+  "name": "ghostride",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "Menu bar app to monitor and approve Claude Code sessions",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
-  "bin": {
-    "ccbuddy": "./dist/cli/cli/index.js"
-  },
+  "author": "Kosuke Endo",
+  "homepage": "https://github.com/kosukeendo/ghostride",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
@@ -17,8 +14,6 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
-    "build:cli": "tsc -p tsconfig.cli.json",
-    "dev:cli": "tsc -p tsconfig.cli.json --watch",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
@@ -28,7 +23,6 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "chokidar": "^5.0.0",
-    "node-pty": "^1.0.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

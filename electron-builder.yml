@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: ccbuddy
+appId: com.ghostride.app
+productName: Ghostride
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: ccbuddy
+  executableName: ghostride
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

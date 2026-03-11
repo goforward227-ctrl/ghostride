@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-export interface CCBuddyAPI {
+export interface GhostrideAPI {
   onProcessesUpdated: (callback: (processes: ClaudeProcessDTO[]) => void) => void
   approve: (id: string) => Promise<{ success: boolean; error?: string }>
   reject: (id: string) => Promise<{ success: boolean; error?: string }>
@@ -17,7 +17,7 @@ export interface ClaudeProcessDTO {
   lastTimestamp: number
 }
 
-const api: CCBuddyAPI = {
+const api: GhostrideAPI = {
   onProcessesUpdated: (callback) => {
     ipcRenderer.on('processes-updated', (_event, processes) => {
       callback(processes)
