@@ -35,12 +35,16 @@ When running multiple Claude Code sessions, you constantly switch between termin
 
 ### Download
 
-Download the latest `.dmg` from [Releases](https://github.com/kosukeendo/ghostride/releases).
+Download the latest `.dmg` from [Releases](https://github.com/goforward227-ctrl/ghostride/releases).
+
+> **Note:** The app is not code-signed. On first launch, macOS will block it. To open:
+> 1. Open **System Settings → Privacy & Security**
+> 2. Scroll down and click **"Open Anyway"** next to the Ghostride message
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/kosukeendo/ghostride.git
+git clone https://github.com/goforward227-ctrl/ghostride.git
 cd ghostride
 npm install
 npm run build:mac
