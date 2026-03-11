@@ -9,6 +9,7 @@ export interface ClaudeProcess {
   name: string // project name derived from cwd basename
   message: string
   lastTimestamp: number
+  autoApprove: boolean
 }
 
 export interface ScanResult {

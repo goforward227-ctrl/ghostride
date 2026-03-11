@@ -5,6 +5,7 @@ export interface ClaudeProcessDTO {
   name: string
   message: string
   lastTimestamp: number
+  autoApprove: boolean
 }
 
 export interface GhostrideAPI {
@@ -13,6 +14,7 @@ export interface GhostrideAPI {
   reject: (id: string) => Promise<{ success: boolean; error?: string }>
   bulkApprove: () => Promise<{ approved: number; failed: number }>
   rename: (id: string, newName: string) => Promise<boolean>
+  setAutoApprove: (id: string, enabled: boolean) => Promise<boolean>
 }
 
 declare global {

@@ -6,6 +6,7 @@ export function registerIpcHandlers(
   getProcessMap: () => Map<string, ClaudeProcess>,
   approvalHandler: ApprovalHandler,
   renameProject: (sessionId: string, newName: string) => boolean,
+  setAutoApprove: (sessionId: string, enabled: boolean) => boolean,
   notifyRenderer: () => void
 ): void {
   ipcMain.handle('approve', (_event, sessionId: string) => {
@@ -46,5 +47,9 @@ export function registerIpcHandlers(
 
   ipcMain.handle('rename', (_event, sessionId: string, newName: string) => {
     return renameProject(sessionId, newName)
+  })
+
+  ipcMain.handle('set-auto-approve', (_event, sessionId: string, enabled: boolean) => {
+    return setAutoApprove(sessionId, enabled)
   })
 }

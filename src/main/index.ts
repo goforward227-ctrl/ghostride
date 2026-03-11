@@ -22,25 +22,38 @@ const approvalHandler = new ApprovalHandler()
 let rendererReady = false
 const notifiedInputIds = new Set<string>()
 
-// Project names persisted by cwd
-let projectNames: Record<string, string> = {}
+// Project settings persisted by cwd
+interface ProjectSetting {
+  name?: string
+  autoApprove?: boolean
+}
+let projectSettings: Record<string, ProjectSetting> = {}
 
-function getProjectNamesPath(): string {
+function getProjectSettingsPath(): string {
   return join(app.getPath('userData'), 'project-names.json')
 }
 
-function loadProjectNames(): void {
+function loadProjectSettings(): void {
   try {
-    projectNames = JSON.parse(readFileSync(getProjectNamesPath(), 'utf-8'))
+    const raw = JSON.parse(readFileSync(getProjectSettingsPath(), 'utf-8'))
+    // Migrate old format: Record<string, string> → Record<string, ProjectSetting>
+    projectSettings = {}
+    for (const [key, val] of Object.entries(raw)) {
+      if (typeof val === 'string') {
+        projectSettings[key] = { name: val }
+      } else {
+        projectSettings[key] = val as ProjectSetting
+      }
+    }
   } catch {
-    projectNames = {}
+    projectSettings = {}
   }
 }
 
-function saveProjectNames(): void {
+function saveProjectSettings(): void {
   try {
     mkdirSync(app.getPath('userData'), { recursive: true })
-    writeFileSync(getProjectNamesPath(), JSON.stringify(projectNames, null, 2))
+    writeFileSync(getProjectSettingsPath(), JSON.stringify(projectSettings, null, 2))
   } catch {
     // ignore
   }
@@ -51,9 +64,21 @@ function renameProject(sessionId: string, newName: string): boolean {
   if (!proc) return false
   const trimmed = newName.trim()
   if (!trimmed) return false
-  projectNames[proc.cwd] = trimmed
+  if (!projectSettings[proc.cwd]) projectSettings[proc.cwd] = {}
+  projectSettings[proc.cwd].name = trimmed
   proc.name = trimmed
-  saveProjectNames()
+  saveProjectSettings()
+  sendProcessesToRenderer()
+  return true
+}
+
+function setAutoApprove(sessionId: string, enabled: boolean): boolean {
+  const proc = processMap.get(sessionId)
+  if (!proc) return false
+  if (!projectSettings[proc.cwd]) projectSettings[proc.cwd] = {}
+  projectSettings[proc.cwd].autoApprove = enabled
+  proc.autoApprove = enabled
+  saveProjectSettings()
   sendProcessesToRenderer()
   return true
 }
@@ -109,17 +134,26 @@ function mergeProcessData(scanResults: ScanResult[]): void {
     aliveSessionIds.add(session.sessionId)
 
     const existing = processMap.get(session.sessionId)
+    const settings = projectSettings[scan.cwd]
     const proc: ClaudeProcess = {
       id: session.sessionId,
       pid: scan.pid,
       cwd: scan.cwd,
       tty: scan.tty,
       status: parsed.status,
-      name: projectNames[scan.cwd] || existing?.name || basename(scan.cwd),
+      name: settings?.name || existing?.name || basename(scan.cwd),
       message: parsed.message,
-      lastTimestamp: parsed.lastTimestamp
+      lastTimestamp: parsed.lastTimestamp,
+      autoApprove: settings?.autoApprove || false
     }
     processMap.set(session.sessionId, proc)
+
+    // Auto-approve: fire-and-forget when enabled
+    if (proc.status === 'approval' && proc.autoApprove) {
+      approvalHandler.approve(proc.tty).catch(() => {})
+      processMap.delete(session.sessionId)
+      continue
+    }
 
     // Notify once when input status is detected
     if (proc.status === 'input' && !notifiedInputIds.has(proc.id)) {
@@ -188,8 +222,8 @@ app.whenReady().then(() => {
   ])
   Menu.setApplicationMenu(menu)
 
-  loadProjectNames()
-  registerIpcHandlers(getProcessMap, approvalHandler, renameProject, sendProcessesToRenderer)
+  loadProjectSettings()
+  registerIpcHandlers(getProcessMap, approvalHandler, renameProject, setAutoApprove, sendProcessesToRenderer)
 
   scanner.on('processes', (results: ScanResult[]) => {
     mergeProcessData(results)

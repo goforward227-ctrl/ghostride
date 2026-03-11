@@ -6,6 +6,7 @@ export interface GhostrideAPI {
   reject: (id: string) => Promise<{ success: boolean; error?: string }>
   bulkApprove: () => Promise<{ approved: number; failed: number }>
   rename: (id: string, newName: string) => Promise<boolean>
+  setAutoApprove: (id: string, enabled: boolean) => Promise<boolean>
 }
 
 export interface ClaudeProcessDTO {
@@ -27,7 +28,8 @@ const api: GhostrideAPI = {
   approve: (id: string) => ipcRenderer.invoke('approve', id),
   reject: (id: string) => ipcRenderer.invoke('reject', id),
   bulkApprove: () => ipcRenderer.invoke('bulk-approve'),
-  rename: (id: string, newName: string) => ipcRenderer.invoke('rename', id, newName)
+  rename: (id: string, newName: string) => ipcRenderer.invoke('rename', id, newName),
+  setAutoApprove: (id: string, enabled: boolean) => ipcRenderer.invoke('set-auto-approve', id, enabled)
 }
 
 if (process.contextIsolated) {

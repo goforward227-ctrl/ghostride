@@ -20,7 +20,8 @@ const translations = {
     justNow: 'just now',
     secondsAgo: (n: number) => `${n}s ago`,
     minutesAgo: (n: number) => `${n}m ago`,
-    hoursAgo: (n: number) => `${n}h ago`
+    hoursAgo: (n: number) => `${n}h ago`,
+    auto: 'Auto'
   },
   ja: {
     headerTitle: 'すべての通知',
@@ -43,7 +44,8 @@ const translations = {
     justNow: 'たった今',
     secondsAgo: (n: number) => `${n}秒前`,
     minutesAgo: (n: number) => `${n}分前`,
-    hoursAgo: (n: number) => `${n}時間前`
+    hoursAgo: (n: number) => `${n}時間前`,
+    auto: 'Auto'
   }
 } as const
 

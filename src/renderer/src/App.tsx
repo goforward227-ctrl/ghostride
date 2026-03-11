@@ -376,15 +376,42 @@ function App(): React.ReactNode {
                           {p.name}
                         </span>
                       )}
+                      <button
+                        onClick={async () => {
+                          try {
+                            await window.api.setAutoApprove(p.id, !p.autoApprove)
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                        style={{
+                          background: p.autoApprove ? '#DF755D' : 'transparent',
+                          border: p.autoApprove ? '1px solid #DF755D' : '1px solid #d1d1d6',
+                          borderRadius: 4,
+                          padding: '0px 4px',
+                          position: 'relative',
+                          top: -1,
+                          fontSize: 9,
+                          color: p.autoApprove ? '#fff' : '#c7c7cc',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          lineHeight: '14px'
+                        }}
+                      >
+                        {i.auto}
+                      </button>
                       <span style={{ fontSize: 10, color: colors.color }}>{statusLabel}</span>
                     </div>
                     <div
                       style={{
                         fontSize: 11,
                         color: '#3a3a3c',
-                        whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
                         marginBottom: 3
                       }}
                     >
