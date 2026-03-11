@@ -19,7 +19,7 @@ export class ProcessScanner extends EventEmitter {
   }
 
   scan(): void {
-    execFile('ps', ['-eo', 'pid,tty,comm'], { timeout: 5000 }, (err, stdout) => {
+    execFile('/bin/ps', ['-eo', 'pid,tty,comm'], { timeout: 5000 }, (err, stdout) => {
       if (err) {
         this.emit('processes', [])
         return
@@ -57,7 +57,7 @@ export class ProcessScanner extends EventEmitter {
 
       for (const proc of claudeProcesses) {
         execFile(
-          'lsof',
+          '/usr/sbin/lsof',
           ['-a', '-p', String(proc.pid), '-d', 'cwd', '-Fn'],
           { timeout: 3000 },
           (lsofErr, lsofStdout) => {

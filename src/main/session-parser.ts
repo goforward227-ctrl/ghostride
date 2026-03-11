@@ -120,6 +120,7 @@ function extractMessage(entries: JsonlEntry[]): string {
 export function findSessionsForCwd(
   cwd: string
 ): Array<{ sessionId: string; filePath: string }> {
+  const normalizedCwd = cwd.normalize('NFC')
   const claudeDir = join(homedir(), '.claude', 'projects')
   const results: Array<{ sessionId: string; filePath: string }> = []
 
@@ -165,7 +166,7 @@ export function findSessionsForCwd(
         const headLines = readHeadLines(file.path, HEAD_BYTES)
         const headEntries = parseEntries(headLines)
         for (const entry of headEntries) {
-          if (entry.cwd === cwd) {
+          if (entry.cwd && entry.cwd.normalize('NFC') === normalizedCwd) {
             results.push({
               sessionId: file.name.replace('.jsonl', ''),
               filePath: file.path

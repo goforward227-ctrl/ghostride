@@ -37,9 +37,19 @@ When running multiple Claude Code sessions, you constantly switch between termin
 
 Download the latest `.dmg` from [Releases](https://github.com/goforward227-ctrl/ghostride/releases).
 
-> **Note:** The app is not code-signed. On first launch, macOS will block it. To open:
-> 1. Open **System Settings → Privacy & Security**
-> 2. Scroll down and click **"Open Anyway"** next to the Ghostride message
+Open the `.dmg` and drag Ghostride to the Applications folder.
+
+> **Note:** The app is not notarized with Apple. macOS will block it on first launch.
+>
+> **To open:**
+> 1. **Right-click** the app → **Open** → Click **Open** in the dialog
+> 2. If still blocked: **System Settings → Privacy & Security** → scroll down → **Open Anyway**
+>
+> **注意:** Appleの公証を受けていないため、初回起動時にmacOSがブロックします。
+>
+> **開き方:**
+> 1. アプリを**右クリック** → **開く** → ダイアログで**開く**をクリック
+> 2. それでもブロックされる場合: **システム設定 → プライバシーとセキュリティ** → 下にスクロール → **このまま開く**
 
 ### Build from Source
 

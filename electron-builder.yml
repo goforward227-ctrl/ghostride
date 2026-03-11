@@ -28,6 +28,21 @@ mac:
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
+  background: build/dmg-background.png
+  window:
+    width: 660
+    height: 400
+  contents:
+    - x: 480
+      y: 170
+    - x: 180
+      y: 170
+      type: link
+      path: /Applications
+    - x: 330
+      y: 340
+      type: file
+      path: build/README.txt
 linux:
   target:
     - AppImage

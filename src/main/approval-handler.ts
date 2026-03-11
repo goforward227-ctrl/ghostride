@@ -28,7 +28,7 @@ export class ApprovalHandler {
   private runOsascript(script: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const escaped = script.replace(/'/g, "'\\''")
-      exec(`osascript -e '${escaped}'`, { encoding: 'utf-8', timeout: 5000 }, (err, stdout) => {
+      exec(`/usr/bin/osascript -e '${escaped}'`, { encoding: 'utf-8', timeout: 5000 }, (err, stdout) => {
         if (err) reject(err)
         else resolve(stdout.trim())
       })
