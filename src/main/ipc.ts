@@ -4,25 +4,28 @@ import { ApprovalHandler } from './approval-handler'
 
 export function registerIpcHandlers(
   getProcessMap: () => Map<string, ClaudeProcess>,
-  approvalHandler: ApprovalHandler
+  approvalHandler: ApprovalHandler,
+  renameProject: (sessionId: string, newName: string) => boolean,
+  notifyRenderer: () => void
 ): void {
-  ipcMain.handle('approve', async (_event, sessionId: string) => {
-    console.log('[IPC] approve called, sessionId:', sessionId)
-    const proc = getProcessMap().get(sessionId)
-    if (!proc) {
-      console.log('[IPC] process not found in map. Keys:', [...getProcessMap().keys()])
-      return { success: false, error: 'Process not found' }
-    }
-    console.log('[IPC] sending to tty:', proc.tty)
-    const result = await approvalHandler.approve(proc.tty)
-    console.log('[IPC] approve result:', result)
-    return result
-  })
-
-  ipcMain.handle('reject', async (_event, sessionId: string) => {
+  ipcMain.handle('approve', (_event, sessionId: string) => {
     const proc = getProcessMap().get(sessionId)
     if (!proc) return { success: false, error: 'Process not found' }
-    return await approvalHandler.reject(proc.tty)
+    const tty = proc.tty
+    getProcessMap().delete(sessionId)
+    notifyRenderer()
+    approvalHandler.approve(tty)
+    return { success: true }
+  })
+
+  ipcMain.handle('reject', (_event, sessionId: string) => {
+    const proc = getProcessMap().get(sessionId)
+    if (!proc) return { success: false, error: 'Process not found' }
+    const tty = proc.tty
+    getProcessMap().delete(sessionId)
+    notifyRenderer()
+    approvalHandler.reject(tty)
+    return { success: true }
   })
 
   ipcMain.handle('bulk-approve', async () => {
@@ -39,5 +42,9 @@ export function registerIpcHandlers(
     }
 
     return { approved, failed }
+  })
+
+  ipcMain.handle('rename', (_event, sessionId: string, newName: string) => {
+    return renameProject(sessionId, newName)
   })
 }

@@ -54,8 +54,12 @@ function parseEntries(lines: string[]): JsonlEntry[] {
   return entries
 }
 
-function detectStatus(entries: JsonlEntry[], isAlive: boolean): ProcessStatus {
+const IDLE_THRESHOLD_MS = 10_000 // 10 seconds without JSONL update → idle
+
+function detectStatus(entries: JsonlEntry[], isAlive: boolean, mtimeMs: number): ProcessStatus {
   if (!isAlive) return 'done'
+
+  const sinceLastWrite = Date.now() - mtimeMs
 
   // Find last assistant entry with tool_use
   for (let i = entries.length - 1; i >= 0; i--) {
@@ -75,15 +79,16 @@ function detectStatus(entries: JsonlEntry[], isAlive: boolean): ProcessStatus {
           }
           return 'approval'
         }
-        // If last block is text/thinking, it's running (not waiting for approval)
+        // If last block is text/thinking and file recently updated, still running
         if (lastBlock.type === 'text' || lastBlock.type === 'thinking') {
-          return 'running'
+          return sinceLastWrite > IDLE_THRESHOLD_MS ? 'idle' : 'running'
         }
       }
     }
   }
 
-  return 'running'
+  // No recognizable pattern — use file mtime to decide
+  return sinceLastWrite > IDLE_THRESHOLD_MS ? 'idle' : 'running'
 }
 
 function extractMessage(entries: JsonlEntry[]): string {
@@ -178,9 +183,9 @@ export function parseSession(
     const entries = parseEntries(tailLines)
     if (entries.length === 0) return null
 
-    const status = detectStatus(entries, isProcessAlive)
-    const message = extractMessage(entries)
     const stat = fs.statSync(filePath)
+    const status = detectStatus(entries, isProcessAlive, stat.mtimeMs)
+    const message = extractMessage(entries)
 
     return {
       sessionId: basename(filePath, '.jsonl'),

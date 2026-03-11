@@ -1,38 +1,56 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { ClaudeProcessDTO } from '../../preload/index.d'
+import { t, getLocale, setLocale, onLocaleChange, type Locale } from './i18n'
 import './App.css'
 
-type TabType = 'すべて' | '承認待ち'
+type TabType = 'all' | 'pending'
 
-const statusConfig = {
-  approval: { label: '承認待ち', color: '#FF9500', dotColor: '#FF9500', pulse: false },
-  running: { label: '実行中', color: '#007AFF', dotColor: '#007AFF', pulse: true },
-  done: { label: '完了', color: '#aeaeb2', dotColor: '#c7c7cc', pulse: false }
+const statusColors = {
+  approval: { color: '#F5C542', dotColor: '#F5C542', pulse: false },
+  running: { color: '#007AFF', dotColor: '#007AFF', pulse: true },
+  idle: { color: '#aeaeb2', dotColor: '#c7c7cc', pulse: false },
+  done: { color: '#c7c7cc', dotColor: '#d1d1d6', pulse: false }
 }
 
+const statusLabelKey = {
+  approval: 'statusApproval',
+  running: 'statusRunning',
+  idle: 'statusIdle',
+  done: 'statusDone'
+} as const
+
 function formatElapsed(timestampMs: number): string {
+  const i = t()
   const diffSec = Math.floor((Date.now() - timestampMs) / 1000)
-  if (diffSec < 10) return 'たった今'
-  if (diffSec < 60) return `${diffSec}秒前`
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}分前`
-  return `${Math.floor(diffSec / 3600)}時間前`
+  if (diffSec < 10) return i.justNow
+  if (diffSec < 60) return i.secondsAgo(diffSec)
+  if (diffSec < 3600) return i.minutesAgo(Math.floor(diffSec / 60))
+  return i.hoursAgo(Math.floor(diffSec / 3600))
 }
 
 function App(): React.ReactNode {
   const [processes, setProcesses] = useState<ClaudeProcessDTO[]>([])
-  const [activeTab, setActiveTab] = useState<TabType>('すべて')
+  const [activeTab, setActiveTab] = useState<TabType>('all')
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const editRef = useRef<HTMLInputElement>(null)
+  const [locale, setLocaleState] = useState<Locale>(getLocale())
   const [, setTick] = useState(0)
 
-  // Update elapsed times every 10 seconds
+  const i = t()
+
+  useEffect(() => {
+    return onLocaleChange(() => setLocaleState(getLocale()))
+  }, [])
+
   useEffect(() => {
     const interval = setInterval(() => setTick((t) => t + 1), 10000)
     return (): void => clearInterval(interval)
   }, [])
 
-  // Listen for process updates from main process
   useEffect(() => {
     window.api.onProcessesUpdated((data) => {
       setProcesses(data)
@@ -45,10 +63,10 @@ function App(): React.ReactNode {
     try {
       const result = await window.api.approve(id)
       if (!result.success) {
-        setError(result.error || '承認に失敗しました')
+        setError(result.error || t().approvalFailed)
       }
     } catch {
-      setError('通信エラー')
+      setError(t().commError)
     } finally {
       setLoading(null)
       setOpenMenu(null)
@@ -61,7 +79,7 @@ function App(): React.ReactNode {
     try {
       await window.api.reject(id)
     } catch {
-      setError('通信エラー')
+      setError(t().commError)
     } finally {
       setLoading(null)
       setOpenMenu(null)
@@ -72,11 +90,10 @@ function App(): React.ReactNode {
     await window.api.bulkApprove()
   }, [])
 
-  const tabs: TabType[] = ['すべて', '承認待ち']
   const approvalCount = processes.filter((p) => p.status === 'approval').length
 
   const filtered = processes.filter((p) => {
-    if (activeTab === '承認待ち') return p.status === 'approval'
+    if (activeTab === 'pending') return p.status === 'approval'
     return true
   })
 
@@ -84,7 +101,7 @@ function App(): React.ReactNode {
     <div
       style={{
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
-        background: 'transparent',
+        background: '#ffffff',
         height: '100vh',
         display: 'flex',
         flexDirection: 'column'
@@ -109,11 +126,32 @@ function App(): React.ReactNode {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: '#1d1d1f', fontWeight: 700, fontSize: 15 }}>すべての通知</span>
+            <span style={{ color: '#1d1d1f', fontWeight: 700, fontSize: 15 }}>
+              {i.headerTitle}
+            </span>
             <span style={{ fontSize: 11, color: '#aeaeb2', fontWeight: 700 }}>
-              {processes.length}プロセス
+              {i.processCount(processes.length)}
             </span>
           </div>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            style={{
+              WebkitAppearance: 'none',
+              appearance: 'none',
+              background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='4'%3E%3Cpath d='M0 0l3 4 3-4z' fill='%23aeaeb2'/%3E%3C/svg%3E") no-repeat right 4px center`,
+              border: '1px solid #e0e0e8',
+              borderRadius: 4,
+              padding: '3px 14px 3px 6px',
+              fontSize: 12,
+              color: '#6e6e73',
+              cursor: 'pointer',
+              fontFamily: 'inherit'
+            }}
+          >
+            <option value="en">EN</option>
+            <option value="ja">JA</option>
+          </select>
         </div>
 
         {/* Tabs + Bulk */}
@@ -127,25 +165,28 @@ function App(): React.ReactNode {
           }}
         >
           <div style={{ display: 'flex' }}>
-            {tabs.map((tab) => (
+            {([
+              { key: 'all' as TabType, label: i.tabAll },
+              { key: 'pending' as TabType, label: i.tabPending }
+            ]).map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
                 style={{
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   padding: '10px 12px',
                   fontSize: 12,
-                  color: activeTab === tab ? '#1d1d1f' : '#6e6e73',
+                  color: activeTab === tab.key ? '#1d1d1f' : '#6e6e73',
                   borderBottom:
-                    activeTab === tab ? '2px solid #007AFF' : '2px solid transparent',
+                    activeTab === tab.key ? '2px solid #007AFF' : '2px solid transparent',
                   fontFamily: 'inherit',
                   transition: 'color 0.15s'
                 }}
               >
-                {tab}
-                {tab === '承認待ち' && approvalCount > 0 && (
+                {tab.label}
+                {tab.key === 'pending' && approvalCount > 0 && (
                   <span
                     style={{
                       marginLeft: 5,
@@ -178,7 +219,7 @@ function App(): React.ReactNode {
                 fontFamily: 'inherit'
               }}
             >
-              一括承認
+              {i.bulkApprove}
             </button>
           )}
         </div>
@@ -216,7 +257,9 @@ function App(): React.ReactNode {
         )}
 
         {/* List */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: filtered.length === 0 ? 72 : 'auto' }}>
+        <div
+          style={{ flex: 1, overflowY: 'auto', minHeight: filtered.length === 0 ? 72 : 'auto' }}
+        >
           {filtered.length === 0 ? (
             <div
               style={{
@@ -226,29 +269,31 @@ function App(): React.ReactNode {
                 textAlign: 'center'
               }}
             >
-              {activeTab === '承認待ち' ? '承認待ちはありません' : 'プロセスなし'}
+              {activeTab === 'pending' ? i.emptyPending : i.emptyAll}
             </div>
           ) : (
-            filtered.map((p, i) => {
-              const cfg = statusConfig[p.status]
+            filtered.map((p, idx) => {
+              const colors = statusColors[p.status] || statusColors.idle
+              const statusLabel = i[statusLabelKey[p.status] || 'statusIdle']
               return (
                 <div
                   key={p.id}
                   style={{
                     padding: '13px 18px',
-                    borderBottom: i < filtered.length - 1 ? '1px solid #f0f0f5' : 'none',
+                    borderBottom:
+                      idx < filtered.length - 1 ? '1px solid #f0f0f5' : 'none',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 12
                   }}
                 >
                   <div
-                    className={cfg.pulse ? 'status-dot-pulse' : undefined}
+                    className={colors.pulse ? 'status-dot-pulse' : undefined}
                     style={{
                       width: 7,
                       height: 7,
                       borderRadius: '50%',
-                      background: cfg.dotColor,
+                      background: colors.dotColor,
                       flexShrink: 0
                     }}
                   />
@@ -261,10 +306,60 @@ function App(): React.ReactNode {
                         marginBottom: 3
                       }}
                     >
-                      <span style={{ color: '#1d1d1f', fontWeight: 600, fontSize: 13 }}>
-                        {p.name}
-                      </span>
-                      <span style={{ fontSize: 10, color: cfg.color }}>{cfg.label}</span>
+                      {editing === p.id ? (
+                        <input
+                          ref={editRef}
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={async () => {
+                            if (editValue.trim() && editValue.trim() !== p.name) {
+                              await window.api.rename(p.id, editValue.trim())
+                            }
+                            setEditing(null)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              ;(e.target as HTMLInputElement).blur()
+                            } else if (e.key === 'Escape') {
+                              setEditing(null)
+                            }
+                          }}
+                          style={{
+                            color: '#1d1d1f',
+                            fontWeight: 600,
+                            fontSize: 13,
+                            border: '1px solid #007AFF',
+                            borderRadius: 4,
+                            padding: '1px 4px',
+                            fontFamily: 'inherit',
+                            width: 120
+                          }}
+                        />
+                      ) : (
+                        <span
+                          onClick={() => {
+                            setEditing(p.id)
+                            setEditValue(p.name)
+                            setTimeout(() => editRef.current?.select(), 0)
+                          }}
+                          style={{
+                            color: '#1d1d1f',
+                            fontWeight: 600,
+                            fontSize: 13,
+                            cursor: 'text',
+                            borderBottom: '1px dashed transparent'
+                          }}
+                          onMouseEnter={(e) => {
+                            ;(e.target as HTMLElement).style.borderBottomColor = '#c7c7cc'
+                          }}
+                          onMouseLeave={(e) => {
+                            ;(e.target as HTMLElement).style.borderBottomColor = 'transparent'
+                          }}
+                        >
+                          {p.name}
+                        </span>
+                      )}
+                      <span style={{ fontSize: 10, color: colors.color }}>{statusLabel}</span>
                     </div>
                     <div
                       style={{
@@ -307,7 +402,7 @@ function App(): React.ReactNode {
                           opacity: loading === p.id ? 0.7 : 1
                         }}
                       >
-                        {loading === p.id ? '送信中...' : '承認'}
+                        {loading === p.id ? i.sending : i.approve}
                       </button>
                       <button
                         onClick={() => setOpenMenu(openMenu === p.id ? null : p.id)}
@@ -355,7 +450,7 @@ function App(): React.ReactNode {
                               fontFamily: 'inherit'
                             }}
                           >
-                            却下
+                            {i.reject}
                           </button>
                         </div>
                       )}

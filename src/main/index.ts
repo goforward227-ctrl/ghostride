@@ -7,7 +7,8 @@ import { ProcessScanner } from './process-scanner'
 import { SessionWatcher } from './session-watcher'
 import { ApprovalHandler } from './approval-handler'
 import { findSessionForCwd, parseSession } from './session-parser'
-import { basename } from 'path'
+import { basename, join } from 'path'
+import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import type { ClaudeProcess, ScanResult } from './types'
 
 // Prevent multiple instances
@@ -18,25 +19,63 @@ if (!gotTheLock) {
 
 const processMap = new Map<string, ClaudeProcess>()
 const approvalHandler = new ApprovalHandler()
+let rendererReady = false
+
+// Project names persisted by cwd
+let projectNames: Record<string, string> = {}
+
+function getProjectNamesPath(): string {
+  return join(app.getPath('userData'), 'project-names.json')
+}
+
+function loadProjectNames(): void {
+  try {
+    projectNames = JSON.parse(readFileSync(getProjectNamesPath(), 'utf-8'))
+  } catch {
+    projectNames = {}
+  }
+}
+
+function saveProjectNames(): void {
+  try {
+    mkdirSync(app.getPath('userData'), { recursive: true })
+    writeFileSync(getProjectNamesPath(), JSON.stringify(projectNames, null, 2))
+  } catch {
+    // ignore
+  }
+}
+
+function renameProject(sessionId: string, newName: string): boolean {
+  const proc = processMap.get(sessionId)
+  if (!proc) return false
+  const trimmed = newName.trim()
+  if (!trimmed) return false
+  projectNames[proc.cwd] = trimmed
+  proc.name = trimmed
+  saveProjectNames()
+  sendProcessesToRenderer()
+  return true
+}
 
 function getProcessMap(): Map<string, ClaudeProcess> {
   return processMap
 }
 
 function sendProcessesToRenderer(): void {
-  const win = getMainWindow()
-  if (!win || win.isDestroyed() || !win.webContents || win.webContents.isDestroyed()) return
-  try {
-    const processes = Array.from(processMap.values())
-    win.webContents.send('processes-updated', processes)
-  } catch {
-    // Renderer not ready yet (HMR reload, etc.)
-  }
-
   const pendingCount = Array.from(processMap.values()).filter(
     (p) => p.status === 'approval'
   ).length
   updateTrayTitle(pendingCount)
+
+  if (!rendererReady) return
+  const win = getMainWindow()
+  if (!win || win.isDestroyed()) return
+  try {
+    const processes = Array.from(processMap.values())
+    win.webContents.send('processes-updated', processes)
+  } catch {
+    rendererReady = false
+  }
 }
 
 async function handleBulkApprove(): Promise<void> {
@@ -71,22 +110,15 @@ function mergeProcessData(scanResults: ScanResult[]): void {
       cwd: scan.cwd,
       tty: scan.tty,
       status: parsed.status,
-      name: existing?.name || basename(scan.cwd),
+      name: projectNames[scan.cwd] || existing?.name || basename(scan.cwd),
       message: parsed.message,
       lastTimestamp: parsed.lastTimestamp
     }
     processMap.set(session.sessionId, proc)
   }
 
-  for (const [, proc] of processMap) {
-    if (!aliveSessionIds.has(proc.id) && proc.status !== 'done') {
-      proc.status = 'done'
-    }
-  }
-
-  const fiveMinAgo = Date.now() - 5 * 60 * 1000
   for (const [sessionId, proc] of processMap) {
-    if (proc.status === 'done' && proc.lastTimestamp < fiveMinAgo) {
+    if (!aliveSessionIds.has(proc.id)) {
       processMap.delete(sessionId)
     }
   }
@@ -138,7 +170,8 @@ app.whenReady().then(() => {
   ])
   Menu.setApplicationMenu(menu)
 
-  registerIpcHandlers(getProcessMap, approvalHandler)
+  loadProjectNames()
+  registerIpcHandlers(getProcessMap, approvalHandler, renameProject, sendProcessesToRenderer)
 
   scanner.on('processes', (results: ScanResult[]) => {
     mergeProcessData(results)
@@ -148,10 +181,15 @@ app.whenReady().then(() => {
     scanner.scan()
   })
 
-  // Wait for renderer to be ready before starting scanning
+  // Track renderer readiness (HMR reloads cause frame disposal)
   win.webContents.on('did-finish-load', () => {
-    scanner.start(3000)
+    rendererReady = true
+    sendProcessesToRenderer()
+    scanner.start(1500)
     watcher.start()
+  })
+  win.webContents.on('did-start-navigation', () => {
+    rendererReady = false
   })
 })
 

@@ -7,6 +7,7 @@ export class SessionWatcher extends EventEmitter {
   private watcher: chokidar.FSWatcher | null = null
 
   start(): void {
+    if (this.watcher) return // Already running
     const claudeDir = join(homedir(), '.claude', 'projects')
 
     this.watcher = chokidar.watch(join(claudeDir, '**/*.jsonl'), {

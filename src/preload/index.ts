@@ -5,12 +5,13 @@ export interface CCBuddyAPI {
   approve: (id: string) => Promise<{ success: boolean; error?: string }>
   reject: (id: string) => Promise<{ success: boolean; error?: string }>
   bulkApprove: () => Promise<{ approved: number; failed: number }>
+  rename: (id: string, newName: string) => Promise<boolean>
 }
 
 export interface ClaudeProcessDTO {
   id: string
   pid: number
-  status: 'approval' | 'running' | 'done'
+  status: 'approval' | 'running' | 'idle' | 'done'
   name: string
   message: string
   lastTimestamp: number
@@ -24,7 +25,8 @@ const api: CCBuddyAPI = {
   },
   approve: (id: string) => ipcRenderer.invoke('approve', id),
   reject: (id: string) => ipcRenderer.invoke('reject', id),
-  bulkApprove: () => ipcRenderer.invoke('bulk-approve')
+  bulkApprove: () => ipcRenderer.invoke('bulk-approve'),
+  rename: (id: string, newName: string) => ipcRenderer.invoke('rename', id, newName)
 }
 
 if (process.contextIsolated) {

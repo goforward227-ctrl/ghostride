@@ -1,7 +1,7 @@
 export interface ClaudeProcessDTO {
   id: string
   pid: number
-  status: 'approval' | 'running' | 'done'
+  status: 'approval' | 'running' | 'idle' | 'done'
   name: string
   message: string
   lastTimestamp: number
@@ -12,6 +12,7 @@ export interface CCBuddyAPI {
   approve: (id: string) => Promise<{ success: boolean; error?: string }>
   reject: (id: string) => Promise<{ success: boolean; error?: string }>
   bulkApprove: () => Promise<{ approved: number; failed: number }>
+  rename: (id: string, newName: string) => Promise<boolean>
 }
 
 declare global {

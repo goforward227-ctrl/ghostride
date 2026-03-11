@@ -6,6 +6,7 @@ export class ProcessScanner extends EventEmitter {
   private interval: ReturnType<typeof setInterval> | null = null
 
   start(intervalMs = 3000): void {
+    if (this.interval) return // Already running
     this.scan()
     this.interval = setInterval(() => this.scan(), intervalMs)
   }
