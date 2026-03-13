@@ -46,8 +46,9 @@ function buildIcons(): void {
 }
 
 function getBadgeIcon(): Electron.NativeImage {
-  // Dark mode (dark menu bar) needs light icon, light mode needs dark icon
-  return nativeTheme.shouldUseDarkColors ? badgeLightIcon : badgeDarkIcon
+  // badgeDarkIcon is actually a light-colored ghost (visible on dark menu bar)
+  // badgeLightIcon is actually a dark-colored ghost (visible on light menu bar)
+  return nativeTheme.shouldUseDarkColors ? badgeDarkIcon : badgeLightIcon
 }
 
 export function createTray(
